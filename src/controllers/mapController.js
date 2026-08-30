@@ -3,17 +3,17 @@ const User = require('../models/User');
 const Location = require('../models/Location');
 
 class MapController {
-    // Cache for categories to reduce API calls
+    // Cache for categories
     static categoryCache = {
         data: null,
         timestamp: null,
-        ttl: 3600000 // 1 hour cache
+        ttl: 3600000 // 1 hour
     };
 
-    // Get all available categories from Overture
-    static async getAvailableCategories(req, res) {
+    // ==================== GET PLACES WITH RETRY LOGIC ====================
+    static async getPlaces(req, res) {
         try {
-            const { lat, lng, radius = 5000 } = req.query;
+            const { lat, lng, radius = 2000, page = 1, limit = 20 } = req.query;
 
             if (!lat || !lng) {
                 return res.status(400).json({ 
@@ -21,120 +21,7 @@ class MapController {
                 });
             }
 
-            // Check if we have cached categories
-            const now = Date.now();
-            if (this.categoryCache.data && 
-                (now - this.categoryCache.timestamp) < this.categoryCache.ttl) {
-                console.log('📦 Using cached categories');
-                return res.json({
-                    categories: this.categoryCache.data,
-                    source: 'cache',
-                    total: this.categoryCache.data.length
-                });
-            }
-
-            // Fetch categories from Overture
-            try {
-                const response = await axios.get('https://api.overturemapsapi.com/places/categories', {
-                    params: {
-                        lat: parseFloat(lat),
-                        lng: parseFloat(lng),
-                        radius: parseInt(radius)
-                    },
-                    headers: {
-                        'x-api-key': process.env.OVERTURE_API_KEY
-                    },
-                    timeout: 10000
-                });
-
-                // Process the categories
-                let categories = [];
-                if (response.data && response.data.categories) {
-                    categories = response.data.categories;
-                } else if (response.data && response.data.features) {
-                    // Extract unique categories from features
-                    const categorySet = new Set();
-                    response.data.features.forEach(feature => {
-                        const props = feature.properties;
-                        // Handle new taxonomy
-                        if (props.taxonomy) {
-                            props.taxonomy.forEach(tax => {
-                                if (tax.category) categorySet.add(tax.category);
-                                if (tax.subcategory) categorySet.add(tax.subcategory);
-                            });
-                        }
-                        // Handle basic_category
-                        if (props.basic_category) {
-                            categorySet.add(props.basic_category);
-                        }
-                        // Handle deprecated categories
-                        if (props.categories) {
-                            const cats = props.categories.split('.');
-                            cats.forEach(cat => categorySet.add(cat));
-                        }
-                    });
-                    categories = Array.from(categorySet);
-                }
-
-                // Cache the results
-                this.categoryCache.data = categories;
-                this.categoryCache.timestamp = now;
-
-                console.log(`📊 Found ${categories.length} categories in the area`);
-                
-                res.json({
-                    categories: categories,
-                    source: 'api',
-                    total: categories.length,
-                    sample: categories.slice(0, 10)
-                });
-
-            } catch (apiError) {
-                console.error('Error fetching categories:', apiError.message);
-                
-                // Fallback to common categories
-                const fallbackCategories = [
-                    'restaurant', 'cafe', 'park', 'museum', 'shop', 
-                    'hotel', 'school', 'hospital', 'bank', 'library',
-                    'gym', 'pharmacy', 'bakery', 'bar', 'cinema'
-                ];
-                
-                res.json({
-                    categories: fallbackCategories,
-                    source: 'fallback',
-                    total: fallbackCategories.length,
-                    message: 'Using fallback categories due to API error'
-                });
-            }
-        } catch (error) {
-            console.error('Get categories error:', error);
-            res.status(500).json({ 
-                error: 'Failed to get categories',
-                fallbackCategories: ['restaurant', 'cafe', 'park', 'museum', 'shop']
-            });
-        }
-    }
-
-    // Get places with pagination
-    static async getPlacesPaginated(req, res) {
-        try {
-            const { 
-                lat, 
-                lng, 
-                radius = 2000, 
-                categories = '', 
-                page = 1, 
-                limit = 20,
-                has_contact = ''
-            } = req.query;
-
-            if (!lat || !lng) {
-                return res.status(400).json({ 
-                    error: 'Latitude and longitude are required' 
-                });
-            }
-
-            const offset = (parseInt(page) - 1) * parseInt(limit);
+            console.log(`📍 Fetching places near (${lat}, ${lng})`);
 
             // Check API key
             if (!process.env.OVERTURE_API_KEY || 
@@ -148,80 +35,62 @@ class MapController {
                 ));
             }
 
-            try {
-                // Build query parameters
-                const params = {
-                    lat: parseFloat(lat),
-                    lng: parseFloat(lng),
-                    radius: parseInt(radius),
-                    limit: parseInt(limit),
-                    offset: offset
-                };
+            // Try API with retry
+            let places = [];
+            let total = 0;
+            let apiSuccess = false;
 
-                if (categories) {
-                    params.categories = categories;
-                }
-                if (has_contact) {
-                    params.has_contact = has_contact;
-                }
+            for (let attempt = 1; attempt <= 3; attempt++) {
+                try {
+                    console.log(`🔄 API attempt ${attempt}/3`);
+                    
+                    const response = await axios.get('https://api.overturemapsapi.com/places', {
+                        params: {
+                            lat: parseFloat(lat),
+                            lng: parseFloat(lng),
+                            radius: parseInt(radius),
+                            limit: parseInt(limit),
+                            offset: (parseInt(page) - 1) * parseInt(limit)
+                        },
+                        headers: {
+                            'x-api-key': process.env.OVERTURE_API_KEY
+                        },
+                        timeout: 10000 // 10 second timeout
+                    });
 
-                // Make API request
-                const response = await axios.get('https://api.overturemapsapi.com/places', {
-                    params: params,
-                    headers: {
-                        'x-api-key': process.env.OVERTURE_API_KEY
-                    },
-                    timeout: 10000
-                });
-
-                // Process places
-                let places = [];
-                let total = 0;
-
-                if (response.data) {
-                    if (response.data.features) {
-                        places = response.data.features
-                            .filter(feature => feature.properties?.name)
-                            .map(feature => MapController.processPlaceFeature(feature));
-                        total = response.data.total || response.data.features.length;
-                    } else if (response.data.places) {
-                        places = response.data.places.map(place => 
-                            MapController.processPlaceObject(place)
-                        );
-                        total = response.data.total || response.data.places.length;
+                    if (response.data) {
+                        if (response.data.features) {
+                            places = response.data.features
+                                .filter(feature => feature.properties?.name)
+                                .map(feature => MapController.processPlaceFeature(feature));
+                            total = response.data.total || response.data.features.length;
+                        } else if (response.data.places) {
+                            places = response.data.places.map(place => 
+                                MapController.processPlaceObject(place)
+                            );
+                            total = response.data.total || response.data.places.length;
+                        }
+                        apiSuccess = true;
+                        console.log(`✅ API success! Found ${places.length} places`);
+                        break;
+                    }
+                } catch (apiError) {
+                    console.error(`❌ API attempt ${attempt} failed:`, apiError.code || apiError.message);
+                    
+                    // If it's a network error, wait before retrying
+                    if (apiError.code === 'ETIMEDOUT' || apiError.code === 'ENETUNREACH') {
+                        console.log(`⏳ Waiting 2 seconds before retry...`);
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                    } else {
+                        // For other errors, break the retry loop
+                        break;
                     }
                 }
+            }
 
-                // Get category distribution
-                const categoryStats = MapController.getCategoryStats(places);
-
-                res.json({
-                    success: true,
-                    places: places,
-                    pagination: {
-                        page: parseInt(page),
-                        limit: parseInt(limit),
-                        total: total,
-                        totalPages: Math.ceil(total / parseInt(limit)),
-                        hasNext: (parseInt(page) * parseInt(limit)) < total,
-                        hasPrevious: parseInt(page) > 1
-                    },
-                    categoryStats: categoryStats,
-                    filters: {
-                        categories: categories || 'all',
-                        radius: radius,
-                        has_contact: has_contact || 'any'
-                    }
-                });
-
-            } catch (apiError) {
-                console.error('Overture API error:', {
-                    message: apiError.message,
-                    code: apiError.code,
-                    response: apiError.response?.data,
-                    status: apiError.response?.status
-                });
-
+            // If all API attempts failed, use mock data
+            if (!apiSuccess || places.length === 0) {
+                console.log('📦 Using mock data instead');
                 return res.json(MapController.getMockPlacesPaginated(
                     parseFloat(lat), 
                     parseFloat(lng), 
@@ -229,8 +98,27 @@ class MapController {
                     parseInt(page)
                 ));
             }
+
+            // Get category distribution
+            const categoryStats = MapController.getCategoryStats(places);
+
+            res.json({
+                success: true,
+                places: places,
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total: total,
+                    totalPages: Math.ceil(total / parseInt(limit)),
+                    hasNext: (parseInt(page) * parseInt(limit)) < total,
+                    hasPrevious: parseInt(page) > 1
+                },
+                categoryStats: categoryStats,
+                source: 'Overture Maps API'
+            });
+
         } catch (error) {
-            console.error('Get places error:', error);
+            console.error('❌ Get places error:', error.message);
             const { lat = 40.7128, lng = -74.0060, limit = 20, page = 1 } = req.query;
             return res.json(MapController.getMockPlacesPaginated(
                 parseFloat(lat), 
@@ -241,10 +129,10 @@ class MapController {
         }
     }
 
-    // Load all places by discovering categories and paginating through them
-    static async loadAllPlaces(req, res) {
+    // ==================== GET CATEGORIES ====================
+    static async getAvailableCategories(req, res) {
         try {
-            const { lat, lng, radius = 2000, maxPlaces = 100 } = req.query;
+            const { lat, lng, radius = 5000 } = req.query;
 
             if (!lat || !lng) {
                 return res.status(400).json({ 
@@ -252,9 +140,99 @@ class MapController {
                 });
             }
 
-            console.log(`🔍 Discovering categories near (${lat}, ${lng})...`);
+            // Check cache
+            const now = Date.now();
+            if (this.categoryCache.data && 
+                (now - this.categoryCache.timestamp) < this.categoryCache.ttl) {
+                console.log('📦 Using cached categories');
+                return res.json({
+                    categories: this.categoryCache.data,
+                    source: 'cache',
+                    total: this.categoryCache.data.length
+                });
+            }
 
-            // Step 1: Get all available categories in the area
+            // Try API with retry
+            let categories = [];
+            let apiSuccess = false;
+
+            for (let attempt = 1; attempt <= 2; attempt++) {
+                try {
+                    console.log(`🔄 Category API attempt ${attempt}/2`);
+                    
+                    const response = await axios.get('https://api.overturemapsapi.com/places/categories', {
+                        params: {
+                            lat: parseFloat(lat),
+                            lng: parseFloat(lng),
+                            radius: parseInt(radius)
+                        },
+                        headers: {
+                            'x-api-key': process.env.OVERTURE_API_KEY
+                        },
+                        timeout: 8000
+                    });
+
+                    if (response.data && response.data.categories) {
+                        categories = response.data.categories;
+                        apiSuccess = true;
+                        console.log(`✅ Found ${categories.length} categories`);
+                        break;
+                    }
+                } catch (apiError) {
+                    console.error(`❌ Category API attempt ${attempt} failed:`, apiError.message);
+                    if (attempt < 2) {
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+                    }
+                }
+            }
+
+            // Fallback categories
+            if (!apiSuccess || categories.length === 0) {
+                categories = [
+                    'restaurant', 'cafe', 'park', 'museum', 'shop', 
+                    'hotel', 'school', 'hospital', 'bank', 'library',
+                    'gym', 'pharmacy', 'bakery', 'bar', 'cinema',
+                    'theater', 'gallery', 'supermarket', 'clinic', 'church'
+                ];
+                console.log('📦 Using fallback categories');
+            }
+
+            // Cache the results
+            this.categoryCache.data = categories;
+            this.categoryCache.timestamp = now;
+
+            res.json({
+                categories: categories,
+                source: apiSuccess ? 'api' : 'fallback',
+                total: categories.length,
+                sample: categories.slice(0, 10)
+            });
+
+        } catch (error) {
+            console.error('❌ Get categories error:', error);
+            const fallbackCategories = ['restaurant', 'cafe', 'park', 'museum', 'shop'];
+            res.json({
+                categories: fallbackCategories,
+                source: 'fallback',
+                total: fallbackCategories.length
+            });
+        }
+    }
+
+    // ==================== LOAD ALL PLACES ====================
+    static async loadAllPlaces(req, res) {
+        try {
+            const { lat, lng, radius = 2000, maxPlaces = 50 } = req.query;
+
+            if (!lat || !lng) {
+                return res.status(400).json({ 
+                    error: 'Latitude and longitude are required' 
+                });
+            }
+
+            console.log(`🔍 Loading all places near (${lat}, ${lng})`);
+
+            // Get categories
             const categoryResponse = await MapController.getAvailableCategoriesInternal(
                 parseFloat(lat), 
                 parseFloat(lng), 
@@ -273,66 +251,51 @@ class MapController {
                 });
             }
 
-            // Step 2: Load places from each category with pagination
+            // Load places from each category
             const allPlaces = [];
             const categoryResults = {};
             let totalFetched = 0;
-            let page = 1;
-            const limit = 20;
+            const limit = 15;
 
-            // Shuffle categories for better distribution
-            const shuffledCategories = MapController.shuffleArray(categories);
+            // Use top categories only
+            const topCategories = categories.slice(0, 10);
 
-            for (const category of shuffledCategories) {
+            for (const category of topCategories) {
                 if (totalFetched >= parseInt(maxPlaces)) {
-                    console.log(`✅ Reached maximum places limit (${maxPlaces})`);
                     break;
                 }
 
-                console.log(`📂 Loading places for category: ${category}`);
-
+                console.log(`📂 Loading category: ${category}`);
+                
                 try {
-                    let hasMore = true;
-                    let categoryPage = 1;
+                    const response = await MapController.getPlacesPaginatedInternal(
+                        parseFloat(lat),
+                        parseFloat(lng),
+                        parseInt(radius),
+                        category,
+                        1,
+                        Math.min(limit, parseInt(maxPlaces) - totalFetched)
+                    );
 
-                    while (hasMore && totalFetched < parseInt(maxPlaces)) {
-                        const response = await MapController.getPlacesPaginatedInternal(
-                            parseFloat(lat),
-                            parseFloat(lng),
-                            parseInt(radius),
-                            category,
-                            categoryPage,
-                            Math.min(limit, parseInt(maxPlaces) - totalFetched)
+                    if (response.places && response.places.length > 0) {
+                        // Avoid duplicates
+                        const newPlaces = response.places.filter(place => 
+                            !allPlaces.some(p => 
+                                p.name === place.name && 
+                                Math.abs(p.lat - place.lat) < 0.0001 &&
+                                Math.abs(p.lng - place.lng) < 0.0001
+                            )
                         );
 
-                        if (response.places && response.places.length > 0) {
-                            const newPlaces = response.places.filter(place => 
-                                !allPlaces.some(p => 
-                                    p.name === place.name && 
-                                    Math.abs(p.lat - place.lat) < 0.0001 &&
-                                    Math.abs(p.lng - place.lng) < 0.0001
-                                )
-                            );
+                        allPlaces.push(...newPlaces);
+                        totalFetched += newPlaces.length;
 
-                            allPlaces.push(...newPlaces);
-                            totalFetched += newPlaces.length;
+                        categoryResults[category] = {
+                            total: response.pagination?.total || newPlaces.length,
+                            loaded: newPlaces.length
+                        };
 
-                            if (!categoryResults[category]) {
-                                categoryResults[category] = {
-                                    total: 0,
-                                    loaded: 0
-                                };
-                            }
-                            categoryResults[category].total = response.pagination?.total || newPlaces.length;
-                            categoryResults[category].loaded += newPlaces.length;
-
-                            console.log(`   ✅ Loaded ${newPlaces.length} places from ${category} (${totalFetched} total)`);
-
-                            hasMore = response.pagination?.hasNext || false;
-                            categoryPage++;
-                        } else {
-                            hasMore = false;
-                        }
+                        console.log(`   ✅ Loaded ${newPlaces.length} places from ${category} (${totalFetched} total)`);
                     }
                 } catch (error) {
                     console.error(`❌ Error loading category ${category}:`, error.message);
@@ -342,14 +305,14 @@ class MapController {
             res.json({
                 success: true,
                 summary: {
-                    totalCategories: categories.length,
+                    totalCategories: topCategories.length,
                     categoriesWithResults: Object.keys(categoryResults).length,
                     totalPlacesFound: allPlaces.length,
                     maxPlacesLimit: parseInt(maxPlaces)
                 },
                 categoryBreakdown: categoryResults,
                 places: allPlaces,
-                categories: categories,
+                categories: topCategories,
                 location: {
                     lat: parseFloat(lat),
                     lng: parseFloat(lng),
@@ -358,7 +321,7 @@ class MapController {
             });
 
         } catch (error) {
-            console.error('Load all places error:', error);
+            console.error('❌ Load all places error:', error);
             res.status(500).json({ 
                 error: 'Failed to load all places',
                 message: error.message 
@@ -366,9 +329,7 @@ class MapController {
         }
     }
 
-    // ==================== COLLECTION METHODS ====================
-
-    // Collect a place
+    // ==================== COLLECT PLACE ====================
     static async collectPlace(req, res) {
         try {
             const userId = req.userId;
@@ -410,12 +371,12 @@ class MapController {
                 totalCollected: stats.count
             });
         } catch (error) {
-            console.error('Collect error:', error);
+            console.error('❌ Collect error:', error);
             res.status(500).json({ error: 'Failed to collect place' });
         }
     }
 
-    // Get user's collected locations
+    // ==================== GET USER LOCATIONS ====================
     static async getUserLocations(req, res) {
         try {
             const userId = req.userId;
@@ -430,12 +391,12 @@ class MapController {
                 }
             });
         } catch (error) {
-            console.error('Get locations error:', error);
+            console.error('❌ Get locations error:', error);
             res.status(500).json({ error: 'Failed to get locations' });
         }
     }
 
-    // Update player position
+    // ==================== UPDATE POSITION ====================
     static async updatePosition(req, res) {
         try {
             const userId = req.userId;
@@ -459,23 +420,23 @@ class MapController {
                 position: { lat: parseFloat(lat), lng: parseFloat(lng) }
             });
         } catch (error) {
-            console.error('Update position error:', error);
+            console.error('❌ Update position error:', error);
             res.status(500).json({ error: 'Failed to update position' });
         }
     }
 
-    // Get leaderboard
+    // ==================== GET LEADERBOARD ====================
     static async getLeaderboard(req, res) {
         try {
             const users = await User.getAllUsers();
             res.json(users);
         } catch (error) {
-            console.error('Get leaderboard error:', error);
+            console.error('❌ Get leaderboard error:', error);
             res.status(500).json({ error: 'Failed to get leaderboard' });
         }
     }
 
-    // Get Overture API status
+    // ==================== GET STATUS ====================
     static async getStatus(req, res) {
         try {
             const hasApiKey = !!process.env.OVERTURE_API_KEY && 
@@ -486,7 +447,7 @@ class MapController {
             
             if (hasApiKey) {
                 try {
-                    const response = await axios.get('https://api.overturemapsapi.com/places/categories', {
+                    await axios.get('https://api.overturemapsapi.com/places/categories', {
                         params: {
                             lat: 40.7128,
                             lng: -74.0060,
@@ -501,21 +462,20 @@ class MapController {
                     apiMessage = 'API is responding';
                 } catch (error) {
                     apiStatus = 'error';
-                    apiMessage = error.message || 'API request failed';
+                    apiMessage = error.code || error.message || 'API request failed';
+                    console.log('⚠️ API status check:', apiMessage);
                 }
             }
 
             res.json({
-                service: 'Overture Maps',
+                service: 'World Explorer',
                 apiKeyConfigured: hasApiKey,
                 apiStatus: apiStatus,
                 apiMessage: apiMessage,
-                mapTileProvider: 'OpenStreetMap',
-                dataProvider: hasApiKey ? 'Overture Maps (with fallback to mock data)' : 'Mock Data Only',
+                dataProvider: hasApiKey && apiStatus === 'working' ? 'Overture Maps' : 'Mock Data',
                 status: 'Running',
                 endpoints: {
                     places: '/api/map/places',
-                    placesPaginated: '/api/map/places/paginated',
                     categories: '/api/map/categories',
                     loadAll: '/api/map/load-all',
                     collect: '/api/map/collect',
@@ -525,7 +485,7 @@ class MapController {
                 }
             });
         } catch (error) {
-            console.error('Status error:', error);
+            console.error('❌ Status error:', error);
             res.status(500).json({ 
                 error: 'Failed to get status',
                 status: 'Error'
@@ -542,7 +502,7 @@ class MapController {
                 headers: {
                     'x-api-key': process.env.OVERTURE_API_KEY
                 },
-                timeout: 10000
+                timeout: 8000
             });
 
             let categories = [];
@@ -551,7 +511,7 @@ class MapController {
             }
             return { categories };
         } catch (error) {
-            console.error('Error fetching categories:', error.message);
+            console.error('❌ Error fetching categories:', error.message);
             return {
                 categories: ['restaurant', 'cafe', 'park', 'museum', 'shop', 'hotel', 'bank']
             };
@@ -571,7 +531,7 @@ class MapController {
                 headers: {
                     'x-api-key': process.env.OVERTURE_API_KEY
                 },
-                timeout: 10000
+                timeout: 8000
             });
 
             let places = [];
@@ -594,7 +554,7 @@ class MapController {
                 }
             };
         } catch (error) {
-            console.error(`Error fetching places for category ${category}:`, error.message);
+            console.error(`❌ Error fetching places for category ${category}:`, error.message);
             return { places: [], pagination: { page, limit, total: 0, hasNext: false } };
         }
     }
@@ -620,7 +580,7 @@ class MapController {
         return {
             id: feature.id || `place-${Date.now()}-${Math.random()}`,
             name: props.name || 'Unnamed Location',
-            categories: categories.join(', '),
+            categories: categories.length > 0 ? categories.join(', ') : 'Unknown',
             basic_category: props.basic_category || 'Unknown',
             taxonomy: props.taxonomy || [],
             lat: coords[1] || 0,
@@ -663,18 +623,11 @@ class MapController {
         return stats;
     }
 
-    static shuffleArray(array) {
-        const shuffled = [...array];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        return shuffled;
-    }
-
-    // ==================== MOCK DATA METHODS ====================
+    // ==================== MOCK DATA ====================
 
     static getMockPlacesPaginated(lat, lng, limit, page) {
+        console.log(`📦 Generating mock data for ${lat}, ${lng}`);
+        
         const allPlaces = [
             { name: 'Central Park', category: 'park', points: 15 },
             { name: 'City Museum', category: 'museum', points: 20 },
@@ -686,7 +639,7 @@ class MapController {
             { name: 'Coffee House', category: 'cafe', points: 12 },
             { name: 'Public Library', category: 'library', points: 15 },
             { name: 'Sports Arena', category: 'sports', points: 20 },
-            { name: 'Ocean View', category: 'restaurant', points: 15 },
+            { name: 'Ocean View Restaurant', category: 'restaurant', points: 15 },
             { name: 'Sunset Park', category: 'park', points: 14 },
             { name: 'Artisan Bakery', category: 'bakery', points: 9 },
             { name: 'History Museum', category: 'museum', points: 21 },
@@ -699,7 +652,7 @@ class MapController {
         ];
 
         const start = (page - 1) * limit;
-        const end = start + limit;
+        const end = Math.min(start + limit, allPlaces.length);
         const paginated = allPlaces.slice(start, end);
 
         return {
@@ -707,8 +660,8 @@ class MapController {
                 id: `mock-${Date.now()}-${index}`,
                 name: place.name,
                 categories: place.category,
-                lat: lat + (Math.random() - 0.5) * 0.02,
-                lng: lng + (Math.random() - 0.5) * 0.02,
+                lat: lat + (Math.random() - 0.5) * 0.015,
+                lng: lng + (Math.random() - 0.5) * 0.015,
                 address: `${Math.floor(Math.random() * 1000)} Main St`,
                 points: place.points,
                 source: 'Mock Data',
@@ -723,26 +676,19 @@ class MapController {
                 hasPrevious: page > 1
             },
             categoryStats: {
-                park: 2,
-                museum: 3,
-                cafe: 2,
-                restaurant: 1,
-                library: 2,
-                garden: 2,
-                bakery: 1,
-                gym: 1,
-                pharmacy: 1
+                park: 2, museum: 3, cafe: 2, restaurant: 1,
+                library: 2, garden: 2, bakery: 1, gym: 1
             }
         };
     }
 
-    // Legacy getPlaces method - kept for backward compatibility
-    static async getPlaces(req, res) {
-        return MapController.getPlacesPaginated(req, res);
+    // ==================== PAGINATED PLACES ALIAS ====================
+    static async getPlacesPaginated(req, res) {
+        return MapController.getPlaces(req, res);
     }
 }
 
-// ==================== EXPORT ALL METHODS ====================
+// ==================== EXPORT ====================
 module.exports = {
     getPlaces: MapController.getPlaces,
     getPlacesPaginated: MapController.getPlacesPaginated,

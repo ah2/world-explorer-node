@@ -7,6 +7,7 @@ let collectedPlaceIds = new Set();
 let allLoadedPlaces = [];
 let currentPage = 1;
 const PAGE_SIZE = 20;
+const BASE_PATH = '/world-explorer'; // Same as in app.js
 
 // ==================== DOM ELEMENTS ====================
 const loginScreen = document.getElementById('login-screen');
@@ -41,7 +42,7 @@ loginForm.addEventListener('submit', async (e) => {
         submitBtn.textContent = 'Logging in...';
         submitBtn.disabled = true;
 
-        const response = await fetch('/api/auth/login', {
+        const response = await fetch(`${BASE_PATH}/api/auth/login`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
@@ -191,7 +192,7 @@ async function loadPlaces(lat, lng, page = 1) {
     
     try {
         const response = await fetch(
-            `/api/map/places?lat=${lat}&lng=${lng}&page=${page}&limit=${PAGE_SIZE}`,
+             `${BASE_PATH}/api/map/places?lat=${lat}&lng=${lng}&page=${page}&limit=${PAGE_SIZE}`,
             {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -280,7 +281,7 @@ async function collectPlace(id, name, lat, lng, points) {
     }
 
     try {
-        const response = await fetch('/api/map/collect', {
+        const response = await fetch( `${BASE_PATH}/api/map/collect`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -315,7 +316,7 @@ async function loadCollectedPlaces() {
     console.log('📡 Loading collected places');
     
     try {
-        const response = await fetch('/api/map/locations', {
+        const response = await fetch( `${BASE_PATH}/api/map/locations`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -366,7 +367,7 @@ async function movePlayer(lat, lng) {
 
     // Update position on server (don't wait for response)
     try {
-        await fetch('/api/map/position', {
+        await fetch( `${BASE_PATH}/api/map/position`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -432,7 +433,7 @@ async function loadAllPlaces(lat, lng) {
         showLoadingIndicator('Discovering places in this area...');
         
         const response = await fetch(
-            `/api/map/load-all?lat=${lat}&lng=${lng}&maxPlaces=100`,
+             `${BASE_PATH}/api/map/load-all?lat=${lat}&lng=${lng}&maxPlaces=100`,
             {
                 headers: {
                     'Authorization': `Bearer ${token}`

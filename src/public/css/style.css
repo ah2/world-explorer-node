@@ -1,0 +1,233 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Login Screen */
+#login-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.login-container {
+    background: white;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    width: 350px;
+    text-align: center;
+}
+
+.login-container h1 {
+    margin-bottom: 30px;
+    color: #333;
+}
+
+#login-form input {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+#login-form button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 16px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+#login-form button:hover {
+    background: #5a67d8;
+}
+
+.test-accounts {
+    margin-top: 20px;
+    padding: 10px;
+    background: #f7f7f7;
+    border-radius: 5px;
+    font-size: 14px;
+    color: #666;
+}
+
+/* Game Screen */
+#game-screen {
+    display: flex;
+    height: 100vh;
+}
+
+#sidebar {
+    width: 280px;
+    background: #2c3e50;
+    color: white;
+    padding: 20px;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+#sidebar h3, #sidebar h4 {
+    margin-bottom: 10px;
+}
+
+#sidebar .user-info {
+    border-bottom: 1px solid #34495e;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+#sidebar .user-info p {
+    font-size: 18px;
+    margin: 5px 0;
+}
+
+#logout-btn {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+#collected-list {
+    list-style: none;
+    padding: 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+#collected-list li {
+    padding: 8px;
+    margin: 4px 0;
+    background: #34495e;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+#map {
+    flex: 1;
+    height: 100vh;
+}
+
+.instructions {
+    margin-top: 20px;
+    padding: 15px;
+    background: #34495e;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.instructions p {
+    margin: 5px 0;
+}
+
+/* Map Markers */
+.custom-marker {
+    background: #e74c3c;
+    color: white;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.custom-marker:hover {
+    transform: scale(1.1);
+}
+
+.custom-marker.collected {
+    background: #2ecc71;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    #sidebar {
+        width: 200px;
+        font-size: 14px;
+    }
+}
+
+/* Place Popup */
+.place-popup {
+    min-width: 150px;
+}
+
+.place-popup h4 {
+    margin: 0 0 5px 0;
+    color: #2c3e50;
+}
+
+.place-popup p {
+    margin: 3px 0;
+    font-size: 14px;
+}
+
+.collect-btn {
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 5px;
+    transition: background 0.3s;
+}
+
+.collect-btn:hover {
+    background: #219a52;
+}
+
+.custom-marker.collected {
+    opacity: 0.6;
+}
+
+.user-marker {
+    font-size: 24px;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.points {
+    color: #f1c40f;
+    font-weight: bold;
+    float: right;
+}
+
+.stats {
+    margin-top: 15px;
+    padding: 10px;
+    background: #34495e;
+    border-radius: 5px;
+}
+
+.stats p {
+    margin: 5px 0;
+    font-size: 14px;
+}

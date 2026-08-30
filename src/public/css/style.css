@@ -231,3 +231,96 @@ body {
     margin: 5px 0;
     font-size: 14px;
 }
+
+.category-filters {
+    margin-top: 15px;
+    padding: 10px;
+    background: #34495e;
+    border-radius: 5px;
+}
+
+.filter-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.filter-btn {
+    background: #2c3e50;
+    color: white;
+    border: 1px solid #46637f;
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.filter-btn:hover {
+    background: #46637f;
+}
+
+.filter-btn.active {
+    background: #3498db;
+    border-color: #3498db;
+}
+
+.load-all-btn {
+    margin-top: 15px;
+    padding: 10px;
+    background: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: bold;
+    transition: background 0.3s;
+}
+
+.load-all-btn:hover {
+    background: #219a52;
+}
+
+#loading-indicator {
+    margin: 10px 0;
+    padding: 10px;
+    background: #f39c12;
+    color: white;
+    border-radius: 5px;
+    text-align: center;
+}
+
+.pagination-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding: 10px;
+    background: #34495e;
+    border-radius: 5px;
+}
+
+.pagination-controls button {
+    background: #2c3e50;
+    color: white;
+    border: 1px solid #46637f;
+    padding: 5px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.pagination-controls button:hover {
+    background: #46637f;
+}
+
+.pagination-controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#page-info {
+    color: white;
+    font-size: 14px;
+}

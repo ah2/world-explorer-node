@@ -1,57 +1,107 @@
-const axios = require('axios');
+require('dotenv').config();
+const express = require('express');
+const path = require('path');
+const cors = require('cors');
 
-const BASE_URL = `http://localhost:5000/world-explorer/api`;
+const app = express();
+const PORT = process.env.PORT || 5000;
 
-async function testAPI() {
-    try {
-        console.log('🧪 Testing API endpoints...\n');
+// ============================================
+// BASE PATH CONFIGURATION
+// ============================================
+// Support both local development and Nginx proxy
+const BASE_PATH = process.env.BASE_PATH || '';
+console.log(`📍 Base path: ${BASE_PATH || 'root'}`);
 
-        // 1. Test Login
-        console.log('1️⃣ Testing login...');
-        const loginResponse = await axios.post(`${BASE_URL}/auth/login`, {
-            username: 'admin',
-            password: 'adminpass'
-        });
-        
-        const token = loginResponse.data.token;
-        console.log('✅ Login successful!');
-        console.log(`   Token: ${token.substring(0, 30)}...\n`);
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-        // 2. Test Get Profile
-        console.log('2️⃣ Testing get profile...');
-        const profileResponse = await axios.get(`${BASE_URL}/auth/profile`, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        console.log('✅ Profile retrieved!');
-        console.log(`   Username: ${profileResponse.data.username}`);
-        console.log(`   Score: ${profileResponse.data.score}\n`);
+// ============================================
+// SERVE STATIC FILES
+// ============================================
+// Serve static files from the correct location
+app.use(`${BASE_PATH}/css`, express.static(path.join(__dirname, 'public/css')));
+app.use(`${BASE_PATH}/js`, express.static(path.join(__dirname, 'public/js')));
+app.use(`${BASE_PATH}/static`, express.static(path.join(__dirname, 'public')));
 
-        // 3. Test Get Places
-        console.log('3️⃣ Testing get places...');
-        const placesResponse = await axios.get(`${BASE_URL}/map/places`, {
-            params: { lat: 40.7128, lng: -74.0060 },
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        console.log(`✅ Places retrieved! Found ${placesResponse.data.length} places\n`);
+// ============================================
+// ROUTES
+// ============================================
+const authRoutes = require('./routes/authRoutes');
+const mapRoutes = require('./routes/mapRoutes');
 
-        // 4. Test Update Position
-        console.log('4️⃣ Testing update position...');
-        const positionResponse = await axios.post(`${BASE_URL}/map/position`, {
-            lat: 40.7128,
-            lng: -74.0060
-        }, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        console.log('✅ Position updated!\n');
+app.use(`${BASE_PATH}/api/auth`, authRoutes);
+app.use(`${BASE_PATH}/api/map`, mapRoutes);
 
-        console.log('🎉 All tests passed!');
-    } catch (error) {
-        console.error('❌ Test failed:', error.response?.data || error.message);
-        if (error.response) {
-            console.error('Status:', error.response.status);
-            console.error('Data:', error.response.data);
+// ============================================
+// SERVE FRONTEND
+// ============================================
+// Serve index.html for the main route
+app.get(`${BASE_PATH}/`, (req, res) => {
+    res.sendFile(path.join(__dirname, 'views', 'index.html'));
+});
+
+// Also handle the base path without trailing slash
+app.get(BASE_PATH || '/', (req, res) => {
+    if (BASE_PATH) {
+        // If we have a base path, redirect to include trailing slash
+        if (!req.path.endsWith('/')) {
+            return res.redirect(BASE_PATH + '/');
         }
     }
+    res.sendFile(path.join(__dirname, 'views', 'index.html'));
+});
+
+// For local development, also serve from root
+if (!BASE_PATH) {
+    app.get('/', (req, res) => {
+        res.sendFile(path.join(__dirname, 'views', 'index.html'));
+    });
 }
 
-testAPI();
+// ============================================
+// HEALTH CHECK
+// ============================================
+app.get(`${BASE_PATH}/health`, (req, res) => {
+    res.json({ 
+        status: 'OK', 
+        basePath: BASE_PATH || 'root',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        nodeEnv: process.env.NODE_ENV || 'development'
+    });
+});
+
+// ============================================
+// ERROR HANDLING
+// ============================================
+app.use((err, req, res, next) => {
+    console.error('Error:', err.stack);
+    res.status(500).json({ 
+        error: 'Something went wrong!',
+        message: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+});
+
+app.use((req, res) => {
+    console.log(`❌ 404: ${req.method} ${req.url}`);
+    res.status(404).json({ 
+        error: 'Endpoint not found',
+        path: req.url,
+        basePath: BASE_PATH || 'root'
+    });
+});
+
+// ============================================
+// START SERVER
+// ============================================
+const server = app.listen(PORT, () => {
+    console.log(`🌍 World Explorer running on http://localhost:${PORT}`);
+    console.log(`📍 Base path: ${BASE_PATH || 'root'}`);
+    console.log(`🔗 Access at: http://localhost:${PORT}${BASE_PATH}/`);
+    console.log(`📁 Static files served from: ${BASE_PATH}/css, ${BASE_PATH}/js`);
+});
+
+module.exports = app;

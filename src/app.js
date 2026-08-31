@@ -18,14 +18,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ============================================
-// SERVE STATIC FILES (with base path)
+// SERVE STATIC FILES
 // ============================================
+// Serve CSS files
 app.use(`${BASE_PATH}/css`, express.static(path.join(__dirname, 'public/css')));
+// Serve JS files
 app.use(`${BASE_PATH}/js`, express.static(path.join(__dirname, 'public/js')));
+// Serve other static files
 app.use(`${BASE_PATH}/static`, express.static(path.join(__dirname, 'public')));
 
 // ============================================
-// ROUTES (with base path)
+// ROUTES
 // ============================================
 const authRoutes = require('./routes/authRoutes');
 const mapRoutes = require('./routes/mapRoutes');
@@ -40,17 +43,22 @@ app.get(`${BASE_PATH}/`, (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'index.html'));
 });
 
-// Also handle root path for testing
+// Also handle root path with base path redirect
 app.get('/', (req, res) => {
     res.redirect(BASE_PATH);
+});
+
+// Handle direct access to the app without trailing slash
+app.get(BASE_PATH, (req, res) => {
+    res.sendFile(path.join(__dirname, 'views', 'index.html'));
 });
 
 // ============================================
 // HEALTH CHECK
 // ============================================
 app.get(`${BASE_PATH}/health`, (req, res) => {
-    res.json({
-        status: 'OK',
+    res.json({ 
+        status: 'OK', 
         basePath: BASE_PATH,
         timestamp: new Date().toISOString(),
         uptime: process.uptime()
@@ -62,14 +70,19 @@ app.get(`${BASE_PATH}/health`, (req, res) => {
 // ============================================
 app.use((err, req, res, next) => {
     console.error('Error:', err.stack);
-    res.status(500).json({
+    res.status(500).json({ 
         error: 'Something went wrong!',
         message: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
 });
 
 app.use((req, res) => {
-    res.status(404).json({ error: 'Endpoint not found' });
+    console.log(`❌ 404: ${req.method} ${req.url}`);
+    res.status(404).json({ 
+        error: 'Endpoint not found',
+        path: req.url,
+        basePath: BASE_PATH
+    });
 });
 
 // ============================================
@@ -79,6 +92,7 @@ const server = app.listen(PORT, () => {
     console.log(`🌍 World Explorer running on http://localhost:${PORT}`);
     console.log(`📍 Base path: ${BASE_PATH}`);
     console.log(`🔗 Access at: http://localhost:${PORT}${BASE_PATH}/`);
+    console.log(`📁 Static files served from: ${BASE_PATH}/css, ${BASE_PATH}/js`);
 });
 
 module.exports = app;

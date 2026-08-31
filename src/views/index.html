@@ -1,22 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>World Explorer - Overture Maps</title>
-        <!-- Use BASE_PATH for all resources -->
+    
+    <!-- Use BASE_PATH for all resources -->
     <base href="/world-explorer/">
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
     <div id="app">
         <!-- Login Screen -->
         <div id="login-screen">
             <div class="login-container">
                 <h1>🌍 World Explorer</h1>
+                <p style="color: #666; margin-bottom: 20px;">Powered by Overture Maps</p>
                 <form id="login-form">
                     <input type="text" id="username" placeholder="Username" required>
                     <input type="password" id="password" placeholder="Password" required>
@@ -41,36 +42,13 @@
                     <h4>Collected Places</h4>
                     <ul id="collected-list"></ul>
                 </div>
-                <div class="category-filters" id="category-filters">
-                    <h4>Filter by Category</h4>
-                    <div class="filter-buttons">
-                        <button onclick="filterPlacesByCategory('all')" class="filter-btn active">All</button>
-                    </div>
-                </div>
-
-                <div id="loading-indicator" style="display: none; padding: 10px; text-align: center;">
-                    Loading...
-                </div>
-
-                <div class="pagination-controls">
-                    <button id="prev-page" onclick="loadPreviousPage()">Previous</button>
-                    <span id="page-info">Page 1</span>
-                    <button id="next-page" onclick="loadNextPage()">Next</button>
-                </div>
-
-                <div class="load-all-btn">
-                    <button onclick="loadAllPlaces(currentLat, currentLng)" class="load-all-btn">
-                        🗺️ Load All Places in Area
-                    </button>
-                </div>
-                <div class="stats">
-                    <h4>Statistics</h4>
-                    <p>📊 Total Collected: <span id="total-collected">0</span></p>
-                </div>
                 <div class="instructions">
                     <h4>Controls</h4>
                     <p>WASD or Arrow Keys to move</p>
                     <p>Click markers to collect</p>
+                    <p style="margin-top: 10px; font-size: 12px; color: #888;">
+                        Data from Overture Maps
+                    </p>
                 </div>
             </div>
             <div id="map"></div>
@@ -78,7 +56,6 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="/world-explorer/js/map.js"></script>
+    <script src="js/map.js"></script>
 </body>
-
 </html>

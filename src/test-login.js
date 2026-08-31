@@ -5,7 +5,7 @@ async function testLogin() {
     console.log('🧪 Testing login...');
     
     try {
-        const response = await axios.post('http://localhost:5000/api/auth/login', {
+        const response = await axios.post('http://localhost:5000/world-explorer/api/auth/login', {
             username: 'admin',
             password: 'adminpass'
         });

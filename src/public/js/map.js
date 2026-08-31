@@ -1,10 +1,55 @@
 // ==================== CONFIGURATION ====================
-// This should match your Nginx location and app.js BASE_PATH
-const BASE_PATH = window.location.pathname.startsWith('/world-explorer') 
-    ? '/world-explorer' 
-    : '';
+// Auto-detect base path from the current URL
+function getBasePath() {
+    const path = window.location.pathname;
+    console.log('📍 Current path:', path);
+    
+    // If we're on /world-explorer/ or /world-explorer
+    if (path.startsWith('/world-explorer')) {
+        return '/world-explorer';
+    }
+    
+    // For local development (root path)
+    if (path === '/' || path === '') {
+        return '';
+    }
+    
+    // If we're in a subdirectory, use that
+    const parts = path.split('/');
+    if (parts.length > 1 && parts[1]) {
+        return '/' + parts[1];
+    }
+    
+    return '';
+}
 
-console.log(`📍 Base path: ${BASE_PATH || 'root'}`);
+const BASE_PATH = getBasePath();
+const API_BASE = `${BASE_PATH}/api`;
+
+// ==================== API HELPER ====================
+async function apiRequest(endpoint, options = {}) {
+    // Ensure endpoint starts with / for the API
+    const url = `${API_BASE}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+    console.log(`📡 API Request: ${options.method || 'GET'} ${url}`);
+    
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            ...(options.headers || {})
+        }
+    });
+    
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || `Request failed (${response.status})`);
+    }
+    
+    return response.json();
+}
+
+
 
 // ==================== GLOBAL STATE ====================
 let map, userMarker, currentLat = 0, currentLng = 0;

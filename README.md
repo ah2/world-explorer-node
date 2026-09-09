@@ -46,3 +46,5 @@ npm start
 ```
 ### 4. open your browser
     Navigate to http://localhost:3000 (or the port specified in your .env)
+
+Happy exploring! 🌎

@@ -5,7 +5,9 @@
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "node src/app.js"
+    "dev": "node src/app.js",
+    "api-test": "node src/test-api.js",
+    "login-test": "node src/test-api.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

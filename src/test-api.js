@@ -1,107 +1,363 @@
-require('dotenv').config();
-const express = require('express');
-const path = require('path');
-const cors = require('cors');
+// test-api.js - Test API endpoints without starting the main app
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+const axios = require('axios');
+const { performance } = require('perf_hooks');
+const crypto = require('crypto');
 
-// ============================================
-// BASE PATH CONFIGURATION
-// ============================================
-// Support both local development and Nginx proxy
-const BASE_PATH = process.env.BASE_PATH || '';
-console.log(`📍 Base path: ${BASE_PATH || 'root'}`);
+// Test configuration
+const BASE_URL = process.env.TEST_URL || 'http://localhost:5000';
+const TIMEOUT = 5000;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Colors for output
+const colors = {
+    reset: '\x1b[0m',
+    red: '\x1b[31m',
+    green: '\x1b[32m',
+    yellow: '\x1b[33m',
+    blue: '\x1b[34m',
+    magenta: '\x1b[35m',
+    cyan: '\x1b[36m',
+    gray: '\x1b[90m',
+    bold: '\x1b[1m'
+};
 
-// ============================================
-// SERVE STATIC FILES
-// ============================================
-// Serve static files from the correct location
-app.use(`${BASE_PATH}/css`, express.static(path.join(__dirname, 'public/css')));
-app.use(`${BASE_PATH}/js`, express.static(path.join(__dirname, 'public/js')));
-app.use(`${BASE_PATH}/static`, express.static(path.join(__dirname, 'public')));
-
-// ============================================
-// ROUTES
-// ============================================
-const authRoutes = require('./routes/authRoutes');
-const mapRoutes = require('./routes/mapRoutes');
-
-app.use(`${BASE_PATH}/api/auth`, authRoutes);
-app.use(`${BASE_PATH}/api/map`, mapRoutes);
-
-// ============================================
-// SERVE FRONTEND
-// ============================================
-// Serve index.html for the main route
-app.get(`${BASE_PATH}/`, (req, res) => {
-    res.sendFile(path.join(__dirname, 'views', 'index.html'));
-});
-
-// Also handle the base path without trailing slash
-app.get(BASE_PATH || '/', (req, res) => {
-    if (BASE_PATH) {
-        // If we have a base path, redirect to include trailing slash
-        if (!req.path.endsWith('/')) {
-            return res.redirect(BASE_PATH + '/');
-        }
-    }
-    res.sendFile(path.join(__dirname, 'views', 'index.html'));
-});
-
-// For local development, also serve from root
-if (!BASE_PATH) {
-    app.get('/', (req, res) => {
-        res.sendFile(path.join(__dirname, 'views', 'index.html'));
-    });
+function log(message, color = 'reset', bold = false) {
+    const boldText = bold ? colors.bold : '';
+    console.log(`${boldText}${colors[color]}${message}${colors.reset}`);
 }
 
-// ============================================
-// HEALTH CHECK
-// ============================================
-app.get(`${BASE_PATH}/health`, (req, res) => {
-    res.json({ 
-        status: 'OK', 
-        basePath: BASE_PATH || 'root',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        nodeEnv: process.env.NODE_ENV || 'development'
-    });
-});
+function logTest(name, passed, message = '') {
+    const status = passed ? '✅ PASS' : '❌ FAIL';
+    const color = passed ? 'green' : 'red';
+    log(`  ${status} - ${name}`, color);
+    if (message) log(`    ${message}`, 'gray');
+}
 
-// ============================================
-// ERROR HANDLING
-// ============================================
-app.use((err, req, res, next) => {
-    console.error('Error:', err.stack);
-    res.status(500).json({ 
-        error: 'Something went wrong!',
-        message: process.env.NODE_ENV === 'development' ? err.message : undefined
-    });
-});
+class APITester {
+    constructor(baseUrl) {
+        this.baseUrl = baseUrl;
+        this.results = [];
+        this.testUser = {
+            username: `test_${Date.now()}`,
+            email: `test_${Date.now()}@example.com`,
+            password: 'Test123!@#'
+        };
+        this.authToken = null;
+    }
 
-app.use((req, res) => {
-    console.log(`❌ 404: ${req.method} ${req.url}`);
-    res.status(404).json({ 
-        error: 'Endpoint not found',
-        path: req.url,
-        basePath: BASE_PATH || 'root'
-    });
-});
+async testConnection() {
+    const start = performance.now();
+    
+    // List of possible health endpoints
+    const endpoints = [
+        '/api/health',
+        '/health', 
+        '/',
+        '/status',
+        '/api/status',
+        '/places',
+        '/api/ping'
+    ];
+    
+    console.log(`\n🔍 Testing connection to ${this.baseUrl}...`);
+    
+    // First check if server is reachable
+    try {
+        const baseResponse = await axios.get(this.baseUrl, { 
+            timeout: 3000,
+            validateStatus: () => true
+        });
+        console.log(`   ✅ Server reachable (Status: ${baseResponse.status})`);
+    } catch (error) {
+        console.log(`   ❌ Server not reachable: ${error.message}`);
+        return { passed: false, error: 'Server not reachable' };
+    }
+    
+    // Try each endpoint
+    for (const endpoint of endpoints) {
+        try {
+            const response = await axios.get(`${this.baseUrl}${endpoint}`, {
+                timeout: 3000,
+                validateStatus: () => true
+            });
+            
+            if (response.status === 200) {
+                const duration = (performance.now() - start).toFixed(2);
+                console.log(`   ✅ Found working endpoint: ${endpoint} (${duration}ms)`);
+                
+                // Store the working endpoint for other tests
+                this.workingEndpoint = endpoint;
+                
+                return { 
+                    passed: true, 
+                    duration,
+                    data: response.data,
+                    endpoint: endpoint
+                };
+            } else {
+                console.log(`   ⚠️  ${endpoint} returned status ${response.status}`);
+            }
+        } catch (error) {
+            console.log(`   ⚠️  ${endpoint} failed: ${error.message}`);
+        }
+    }
+    
+    console.log(`   ❌ No working endpoint found`);
+    return { passed: false, error: 'No endpoints responding' };
+}
 
-// ============================================
-// START SERVER
-// ============================================
-const server = app.listen(PORT, () => {
-    console.log(`🌍 World Explorer running on http://localhost:${PORT}`);
-    console.log(`📍 Base path: ${BASE_PATH || 'root'}`);
-    console.log(`🔗 Access at: http://localhost:${PORT}${BASE_PATH}/`);
-    console.log(`📁 Static files served from: ${BASE_PATH}/css, ${BASE_PATH}/js`);
-});
+    async testEndpoint(method, endpoint, data = null, headers = {}) {
+        const start = performance.now();
+        try {
+            const config = {
+                method,
+                url: `${this.baseUrl}${endpoint}`,
+                timeout: TIMEOUT,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...headers
+                }
+            };
+            
+            if (data && ['post', 'put', 'patch'].includes(method.toLowerCase())) {
+                config.data = data;
+            }
+            
+            const response = await axios(config);
+            const duration = (performance.now() - start).toFixed(2);
+            
+            return {
+                passed: true,
+                duration,
+                status: response.status,
+                data: response.data
+            };
+        } catch (error) {
+            const duration = (performance.now() - start).toFixed(2);
+            return {
+                passed: false,
+                duration,
+                status: error.response?.status || 0,
+                error: error.response?.data || error.message,
+                data: error.response?.data
+            };
+        }
+    }
 
-module.exports = app;
+    async testHealth() {
+        log('\n🏥 Testing Health Endpoint', 'cyan', true);
+        const result = await this.testEndpoint('get', '/api/health');
+        
+        if (result.passed) {
+            logTest('Health check', true, `Status: ${result.status}, Response: ${JSON.stringify(result.data)}`);
+        } else {
+            logTest('Health check', false, `Error: ${result.error}`);
+        }
+        this.results.push({ name: 'Health Check', ...result });
+        return result;
+    }
+
+    async testRegistration() {
+        log('\n📝 Testing User Registration', 'cyan', true);
+        
+        const result = await this.testEndpoint('post', '/api/auth/register', this.testUser);
+        
+        if (result.passed && result.data && result.data.token) {
+            this.authToken = result.data.token;
+            logTest('Registration', true, `User: ${this.testUser.username}, Status: ${result.status}`);
+        } else {
+            logTest('Registration', false, result.error || 'Failed to register');
+        }
+        this.results.push({ name: 'Registration', ...result });
+        return result;
+    }
+
+    async testLogin() {
+        log('\n🔑 Testing User Login', 'cyan', true);
+        
+        const loginData = {
+            username: this.testUser.username,
+            password: this.testUser.password
+        };
+        
+        const result = await this.testEndpoint('post', '/api/auth/login', loginData);
+        
+        if (result.passed && result.data && result.data.token) {
+            this.authToken = result.data.token;
+            logTest('Login', true, `User: ${this.testUser.username}, Status: ${result.status}`);
+        } else {
+            logTest('Login', false, result.error || 'Failed to login');
+        }
+        this.results.push({ name: 'Login', ...result });
+        return result;
+    }
+
+    async testProtectedEndpoint() {
+        log('\n🔐 Testing Protected Endpoint', 'cyan', true);
+        
+        if (!this.authToken) {
+            logTest('Protected Endpoint', false, 'No auth token available');
+            return { passed: false, error: 'No auth token' };
+        }
+        
+        const headers = { Authorization: `Bearer ${this.authToken}` };
+        const result = await this.testEndpoint('get', '/api/places', null, headers);
+        
+        if (result.passed) {
+            logTest('Protected Endpoint', true, `Status: ${result.status}, Data: ${JSON.stringify(result.data).substring(0, 100)}...`);
+        } else {
+            logTest('Protected Endpoint', false, result.error || 'Failed to access protected endpoint');
+        }
+        this.results.push({ name: 'Protected Endpoint', ...result });
+        return result;
+    }
+
+    async testInvalidLogin() {
+        log('\n❌ Testing Invalid Login', 'cyan', true);
+        
+        const invalidData = {
+            username: 'nonexistent_user',
+            password: 'wrong_password'
+        };
+        
+        const result = await this.testEndpoint('post', '/api/auth/login', invalidData);
+        
+        // Expecting 401 Unauthorized
+        const passed = result.status === 401;
+        logTest('Invalid Login (should fail)', passed, `Status: ${result.status}, Expected: 401`);
+        this.results.push({ name: 'Invalid Login', ...result, passed });
+        return { ...result, passed };
+    }
+
+    async testMissingFields() {
+        log('\n⚠️  Testing Missing Fields Validation', 'cyan', true);
+        
+        const missingData = {
+            username: 'testuser'
+            // Missing email and password
+        };
+        
+        const result = await this.testEndpoint('post', '/api/auth/register', missingData);
+        
+        const passed = result.status === 400;
+        logTest('Missing Fields Validation', passed, `Status: ${result.status}, Expected: 400`);
+        this.results.push({ name: 'Missing Fields', ...result, passed });
+        return { ...result, passed };
+    }
+
+    async testRateLimit() {
+        log('\n⏱️  Testing Rate Limits', 'cyan', true);
+        
+        const start = Date.now();
+        const requests = [];
+        
+        for (let i = 0; i < 10; i++) {
+            requests.push(
+                this.testEndpoint('get', '/api/health')
+            );
+        }
+        
+        const results = await Promise.all(requests);
+        const duration = Date.now() - start;
+        
+        const failed = results.filter(r => !r.passed);
+        const passed = failed.length === 0;
+        
+        logTest('Rate Limit Test', passed, `${results.length} requests in ${duration}ms, ${failed.length} failed`);
+        this.results.push({ name: 'Rate Limit', passed });
+        return { passed, results };
+    }
+
+    async runAllTests() {
+        log('\n🚀 Starting API Tests', 'magenta', true);
+        log(`   Base URL: ${this.baseUrl}`, 'gray');
+        log(`   Timeout: ${TIMEOUT}ms`, 'gray');
+        log('='.repeat(50), 'cyan');
+
+        // Check if server is running
+        const connection = await this.testConnection();
+        if (!connection.passed) {
+            log('\n❌ Cannot connect to server!', 'red');
+            log(`   Error: ${connection.error}`, 'red');
+            log(`   Make sure the server is running at ${this.baseUrl}`, 'yellow');
+            return;
+        }
+
+        await this.testHealth();
+        await this.testRegistration();
+        await this.testLogin();
+        await this.testProtectedEndpoint();
+        await this.testInvalidLogin();
+        await this.testMissingFields();
+        await this.testRateLimit();
+
+        this.printSummary();
+    }
+
+    printSummary() {
+        log('\n📊 Test Summary', 'blue', true);
+        log('='.repeat(50), 'cyan');
+        
+        const total = this.results.length;
+        const passed = this.results.filter(r => r.passed).length;
+        const failed = total - passed;
+        
+        log(`  Total Tests: ${total}`, 'reset');
+        log(`  Passed: ${passed}`, 'green');
+        log(`  Failed: ${failed}`, 'red');
+        log(`  Success Rate: ${((passed / total) * 100).toFixed(1)}%`, 'cyan');
+        
+        // Detailed results
+        log('\n📋 Detailed Results:', 'blue');
+        this.results.forEach((result, index) => {
+            const status = result.passed ? '✅' : '❌';
+            const duration = result.duration ? `${result.duration}ms` : 'N/A';
+            log(`  ${status} ${result.name} - ${duration}`, result.passed ? 'green' : 'red');
+        });
+        
+        log('\n' + '='.repeat(50), 'cyan');
+        log(`\n💡 To run specific tests:`, 'yellow');
+        log(`   node test-api.js --test=health`, 'gray');
+        log(`   node test-api.js --test=registration`, 'gray');
+        log(`   node test-api.js --test=login`, 'gray');
+    }
+}
+
+// Command-line argument parsing
+async function runSpecificTest(testName) {
+    const tester = new APITester(BASE_URL);
+    
+    const tests = {
+        health: () => tester.testHealth(),
+        registration: () => tester.testRegistration(),
+        login: () => tester.testLogin(),
+        protected: () => tester.testProtectedEndpoint(),
+        invalid: () => tester.testInvalidLogin(),
+        missing: () => tester.testMissingFields(),
+        ratelimit: () => tester.testRateLimit()
+    };
+    
+    if (tests[testName]) {
+        await tests[testName]();
+    } else {
+        log(`❌ Test "${testName}" not found`, 'red');
+        log(`Available tests: ${Object.keys(tests).join(', ')}`, 'yellow');
+    }
+}
+
+// Main execution
+if (require.main === module) {
+    const args = process.argv.slice(2);
+    const testArg = args.find(arg => arg.startsWith('--test='));
+    
+    if (testArg) {
+        const testName = testArg.split('=')[1];
+        runSpecificTest(testName).catch(console.error);
+    } else {
+        // Run all tests
+        const tester = new APITester(BASE_URL);
+        tester.runAllTests().catch(console.error);
+    }
+}
+
+module.exports = { APITester };

@@ -95,4 +95,20 @@ const server = app.listen(PORT, () => {
     console.log(`📁 Static files served from: ${BASE_PATH}/css, ${BASE_PATH}/js`);
 });
 
+// Function to generate a secure JWT secret
+function generateSecret() {
+    return crypto.randomBytes(32).toString('base64');
+}
+
+// Function to read .env file
+function readEnv() {
+    try {
+        return fs.readFileSync(ENV_PATH, 'utf8');
+    } catch (error) {
+        return null;
+    }
+}
+
+
+
 module.exports = app;

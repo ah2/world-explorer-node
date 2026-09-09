@@ -55,7 +55,7 @@ class MapController {
                         headers: {
                             'x-api-key': process.env.OVERTURE_API_KEY
                         },
-                        timeout: 10000 // 10 second timeout
+                        timeout: 20000 // 20 second timeout
                     });
 
                     if (response.data) {
@@ -88,8 +88,13 @@ class MapController {
                 }
             }
 
+            if (apiSuccess && places.length === 0){
+                
+                console.log('⚠️✖️ got zero places 0️⃣');
+            }
+
             // If all API attempts failed, use mock data
-            if (!apiSuccess || places.length === 0) {
+            /*if (!apiSuccess || places.length === 0) {
                 console.log('📦 Using mock data instead');
                 return res.json(MapController.getMockPlacesPaginated(
                     parseFloat(lat), 
@@ -97,7 +102,7 @@ class MapController {
                     parseInt(limit),
                     parseInt(page)
                 ));
-            }
+            }*/
 
             // Get category distribution
             const categoryStats = MapController.getCategoryStats(places);

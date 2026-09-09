@@ -27,6 +27,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(`${BASE_PATH}/css`, express.static(path.join(__dirname, 'public/css')));
 app.use(`${BASE_PATH}/js`, express.static(path.join(__dirname, 'public/js')));
 app.use(`${BASE_PATH}/static`, express.static(path.join(__dirname, 'public')));
+app.use(`${BASE_PATH}/.well-known`, express.static(path.join(__dirname, 'public/.well-known')));
+app.use(`${BASE_PATH}/favicon.png`, express.static(path.join(__dirname, 'public/favicon.png')));
 
 // ============================================
 // ROUTES
@@ -45,29 +47,6 @@ app.get(`${BASE_PATH}/`, (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'index.html'));
 });
 
-// Also serve index.html for the base path without trailing slash
-// but DO NOT redirect - just serve the file
-app.get(BASE_PATH || '/', (req, res) => {
-    // If BASE_PATH is empty, this handles the root path
-    if (BASE_PATH === '') {
-        // For root path, check if we should serve the app
-        // Don't redirect, just serve
-        res.sendFile(path.join(__dirname, 'views', 'index.html'));
-    } else {
-        // For non-empty BASE_PATH, serve the file directly
-        res.sendFile(path.join(__dirname, 'views', 'index.html'));
-    }
-});
-
-// IMPORTANT: For local development without Nginx,
-// we need to handle the root path separately
-if (!BASE_PATH) {
-    // This handles local development: http://localhost:5000/
-    app.get('/', (req, res) => {
-        res.sendFile(path.join(__dirname, 'views', 'index.html'));
-    });
-}
-
 // ============================================
 // HEALTH CHECK
 // ============================================
@@ -80,6 +59,11 @@ app.get(`${BASE_PATH}/health`, (req, res) => {
         nodeEnv: process.env.NODE_ENV || 'development'
     });
 });
+
+/* Add this before your other routes
+app.get('/.well-known/appspecific/com.chrome.devtools.json', (req, res) => {
+  res.status(204).send(); // No content response
+});*/
 
 // ============================================
 // ERROR HANDLING

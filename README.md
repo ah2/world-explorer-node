@@ -25,3 +25,23 @@ A web-based adventure game where players explore real-world locations using **Ov
 ```bash
 git clone https://github.com/yourusername/world-explorer-node.git
 cd world-explorer-node
+
+### 2. Install dependencies
+
+```bash
+npm install
+
+### 3. Configure environment variables
+
+```bash
+cp example.env .env
+//Edit .env and add your OVERTURE_API_KEY
+
+
+### 4. Start the server
+
+```bash
+npm start
+
+### 4. open your browser
+    Navigate to http://localhost:3000 (or the port specified in your .env)

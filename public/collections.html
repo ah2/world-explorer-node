@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>My Collections — World Explorer</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/collections.css">
+</head>
+<body>
+  <header id="topbar">
+    <div class="logo">📚 My Collections</div>
+    <div class="user-area">
+      <span id="user-display">…</span>
+      <a href="/" class="btn">← Back to Map</a>
+      <button id="signout-btn" class="btn btn-danger">Sign Out</button>
+    </div>
+  </header>
+
+  <main class="collections-main">
+    <div class="stats">
+      <div class="stat"><div class="v" id="s-count">0</div><div class="l">Places collected</div></div>
+      <div class="stat"><div class="v" id="s-points">0</div><div class="l">Total points</div></div>
+      <div class="stat"><div class="v" id="s-cats">0</div><div class="l">Categories</div></div>
+    </div>
+
+    <div id="filter-chips" class="category-chips"></div>
+    <div id="grid" class="collection-grid"></div>
+    <p id="empty" class="empty hidden">You haven't collected any places yet. Go explore! 🌍</p>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/collections.js"></script>
+</body>
+</html>

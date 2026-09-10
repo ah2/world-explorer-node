@@ -1,0 +1,144 @@
+.admin-main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+.stat { background: #fff; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.stat .v { font-size: 32px; font-weight: 700; color: #4299e1; }
+.stat .l { color: #718096; font-size: 13px; margin-top: 4px; }
+.card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 24px; }
+.card h2 { font-size: 18px; margin-bottom: 12px; color: #2d3748; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tbl th, .tbl td { padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+.tbl th { background: #f7fafc; color: #4a5568; }
+.pts-input { width: 80px; padding: 6px 8px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px; }
+
+/* =============================================================================
+   Admin panel styles
+   ============================================================================= */
+
+.admin-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* --- Stat cards --- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.stat {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+}
+.stat .v {
+  font-size: 32px;
+  font-weight: 700;
+  color: #4299e1;
+}
+.stat .l {
+  color: #718096;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+/* --- Cards --- */
+.card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+  margin-bottom: 24px;
+}
+.card h2 {
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: #2d3748;
+}
+
+/* --- Tables --- */
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.tbl th,
+.tbl td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+.tbl th {
+  background: #f7fafc;
+  color: #4a5568;
+  font-weight: 600;
+}
+.tbl tr:hover td {
+  background: #f7fafc;
+}
+
+/* --- Points editor --- */
+.pts-input {
+  width: 90px;
+  padding: 6px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.pts-input:focus {
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, .15);
+}
+.points-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* --- Buttons used here (also defined in style.css) --- */
+.btn {
+  padding: 6px 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  text-decoration: none;
+  color: #2d3748;
+  transition: background .15s;
+}
+.btn:hover {
+  background: #f7fafc;
+}
+.btn-danger {
+  background: #e53e3e;
+  color: #fff;
+  border-color: #e53e3e;
+}
+.btn-danger:hover {
+  background: #c53030;
+}
+.btn-admin {
+  background: #48bb78;
+  color: #fff;
+  border-color: #48bb78;
+}
+.btn-admin:hover {
+  background: #38a169;
+}
+
+/* --- Utility --- */
+.muted { color: #718096; }
+.hidden { display: none !important; }
+
+/* --- Responsive --- */
+@media (max-width: 700px) {
+  .stats { grid-template-columns: 1fr; }
+  .tbl { font-size: 12px; }
+  .tbl th, .tbl td { padding: 6px; }
+  .pts-input { width: 70px; }
+}

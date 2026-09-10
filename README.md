@@ -23,7 +23,7 @@ A web-based adventure game where players explore real-world locations using **Ov
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/world-explorer-node.git
+git clone https://github.com/ah2/world-explorer-node.git
 cd world-explorer-node
 ```
 

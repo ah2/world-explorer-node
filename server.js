@@ -25,6 +25,7 @@ app.use(express.static(path.join(__dirname, 'public')));
   app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
   app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
   app.get('/collections', (req, res) => res.sendFile(path.join(__dirname, 'public', 'collections.html')));
+  app.get('/favicon.ico', (req, res) => res.sendFile(path.join(__dirname, 'public', 'favicon.png')));
 
   app.listen(PORT, () => console.log(`🌍 World Explorer: http://localhost:${PORT}`));
 })();

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sign In — World Explorer</title>
+  <link rel="stylesheet" href="/css/login.css">
+</head>
+<body>
+  <main class="splash">
+    <div class="card">
+      <div class="hero">
+        <div class="globe">🌍</div>
+        <h1>World Explorer</h1>
+        <p>Discover places. Collect points. Explore the world.</p>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="login">Sign In</button>
+        <button class="tab" data-tab="register">Register</button>
+      </div>
+
+      <form id="form-login" class="form">
+        <input name="username" placeholder="Username" required autocomplete="username">
+        <input name="password" type="password" placeholder="Password" required autocomplete="current-password">
+        <button class="btn-primary" type="submit">Sign In</button>
+      </form>
+
+      <form id="form-register" class="form hidden">
+        <input name="username" placeholder="Username" required minlength="3">
+        <input name="email" type="email" placeholder="Email" required>
+        <input name="password" type="password" placeholder="Password (6+ chars)" required minlength="6">
+        <button class="btn-primary" type="submit">Create Account</button>
+      </form>
+
+      <div id="error" class="error hidden"></div>
+
+      <div class="quick-login">
+        <p class="divider"><span>or quick login</span></p>
+        <div id="quick-users" class="quick-grid"></div>
+      </div>
+
+      <a class="skip" href="/?guest=1">Continue as guest →</a>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/login.js"></script>
+</body>
+</html>

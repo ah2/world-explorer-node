@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — World Explorer</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <header id="topbar">
+    <div class="logo">🛠️ Admin Panel</div>
+    <div class="user-area">
+      <span id="user-display" class="hidden">…</span>
+      <a href="/" class="btn">← Back to Map</a>
+      <a href="/collections" class="btn">📚 My Collections</a>
+      <button id="signout-btn" class="btn btn-danger">Sign Out</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <div class="stats">
+      <div class="stat">
+        <div class="v" id="s-users">0</div>
+        <div class="l">Users</div>
+      </div>
+      <div class="stat">
+        <div class="v" id="s-coll">0</div>
+        <div class="l">Collections</div>
+      </div>
+      <div class="stat">
+        <div class="v" id="s-pts">0</div>
+        <div class="l">Total Points</div>
+      </div>
+    </div>
+
+    <section class="card">
+      <h2>👥 Users</h2>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>City</th>
+            <th>Admin</th>
+            <th>Collected</th>
+            <th>Points</th>
+            <th>Joined</th>
+          </tr>
+        </thead>
+        <tbody id="users-body">
+          <tr><td colspan="8" class="muted">Loading…</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>📍 Recent Collections</h2>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>User</th>
+            <th>Place</th>
+            <th>Category</th>
+            <th>Points</th>
+            <th>When</th>
+            <th style="width:90px"></th>
+          </tr>
+        </thead>
+        <tbody id="coll-body">
+          <tr><td colspan="7" class="muted">Loading…</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>🎯 Points per Category</h2>
+      <p class="muted" style="margin-bottom:12px">
+        These values are awarded when a player collects a place in that category.
+        Changes apply to future collections only.
+      </p>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th style="width:140px">Points</th>
+            <th style="width:110px"></th>
+          </tr>
+        </thead>
+        <tbody id="cat-points-body">
+          <tr><td colspan="3" class="muted">Loading…</td></tr>
+        </tbody>
+      </table>
+      <div class="points-actions">
+        <button id="add-category-btn" class="btn">+ Add category</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

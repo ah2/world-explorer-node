@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>World Explorer</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header id="topbar">
+    <div class="logo">🌍 World Explorer</div>
+    <div class="search">
+      <input id="search-input" placeholder="Search city…">
+      <button id="search-btn">🔍</button>
+      <select id="category-filter"><option value="">All Categories</option></select>
+    </div>
+    <div class="user-area">
+      <span id="city-label" class="city-label">—</span>
+      <span id="user-display">…</span>
+      <button id="change-city-btn" class="btn">📍 Change City</button>
+      <a href="/collections" id="collections-link" class="btn">📚 My Collections</a>
+      <a href="/admin" id="admin-link" class="btn btn-admin hidden">Admin</a>
+      <button id="signout-btn" class="btn btn-danger">Sign Out</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div id="map-wrap">
+      <div id="map"></div>
+      <div id="popup" class="popup hidden"><span id="popup-text"></span></div>
+      <div id="map-info" class="map-info"></div>
+    </div>
+    <aside id="sidebar">
+  <div class="sidebar-head">
+    <span>📍 Places nearby</span>
+    <span id="place-count">0</span>
+  </div>
+  <div id="category-chips" class="category-chips"></div>
+  <div id="place-list" class="place-list"></div>
+</aside>
+  </main>
+
+  <!-- City picker (first login + change) -->
+  <div id="city-modal" class="modal hidden">
+    <div class="modal-card">
+      <h2>Choose your city</h2>
+      <p class="muted">We'll load places around this area.</p>
+      <input id="city-search" placeholder="Search any city…">
+      <div id="city-results" class="city-list"></div>
+      <div id="city-popular" class="city-list"></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/map.js"></script>
+</body>
+</html>

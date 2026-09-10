@@ -1,0 +1,22 @@
+.collections-main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+.stat { background: #fff; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.stat .v { font-size: 32px; font-weight: 700; color: #4299e1; }
+.stat .l { color: #718096; font-size: 13px; margin-top: 4px; }
+
+.collection-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px; margin-top: 16px;
+}
+.coll-card {
+  display: flex; align-items: center; gap: 12px; padding: 14px;
+  background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+.coll-icon { font-size: 28px; }
+.coll-info { flex: 1; min-width: 0; }
+.coll-name { font-weight: 600; color: #2d3748; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.coll-meta { color: #718096; font-size: 12px; }
+.coll-meta.small { font-size: 11px; }
+.coll-points { font-weight: 700; color: #48bb78; }
+.empty { text-align: center; color: #718096; padding: 40px; }
+.empty.hidden { display: none; }

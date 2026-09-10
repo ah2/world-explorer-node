@@ -23,7 +23,7 @@ A web-based adventure game where players explore real-world locations using **Ov
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/world-explorer-node.git
+git clone https://github.com/ah2/world-explorer-node.git
 cd world-explorer-node
 ```
 
@@ -45,6 +45,6 @@ cp example.env .env
 npm start
 ```
 ### 4. open your browser
-    Navigate to http://localhost:5000 (or the port specified in your .env)
+    Navigate to http://localhost:3000 (or the port specified in your .env)
 
 Happy exploring! 🌎

@@ -9,12 +9,11 @@ A web-based adventure game where players explore real-world locations using **Ov
 - 🏃 **Movement** - Use WASD or Arrow keys to navigate
 - ⭐ **Points System** - Collect places to earn points
 - 👤 **User Authentication** - Login system with JWT tokens
-- 📊 **Leaderboard** - Compete with other players
 - 🏆 **Collections** - Track all places you've discovered
 
 ## 📋 Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v18 or higher)
 - npm (v6 or higher)
 - Overture Maps API Key ([Get one here](https://overturemaps.org/))
 

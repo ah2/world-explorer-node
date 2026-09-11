@@ -43,7 +43,9 @@ cp example.env .env
 ```bash
 npm start
 ```
-### 4. open your browser
+### 4. Open your browser
     Navigate to http://localhost:3000 (or the port specified in your .env)
+
+You can now select one of the seeded users, or register a new account,
 
 Happy exploring! 🌎
